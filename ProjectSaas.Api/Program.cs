@@ -1,3 +1,6 @@
+using ProjectSaas.Api.Common.Extensions;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
@@ -6,6 +9,9 @@ builder.Services.AddControllers();
 // Swagger (OpenAPI) for .NET 8
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Application and Infrastructure Services(AppDbContext configured here)
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
