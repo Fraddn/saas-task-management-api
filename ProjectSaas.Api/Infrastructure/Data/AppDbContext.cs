@@ -45,6 +45,14 @@ public sealed class AppDbContext : DbContext
             entity.Property(u => u.PasswordHash)
                   .IsRequired();
 
+            // ensure values stored match your service normalisation (lowercase + trimmed)
+            entity.Property(u => u.Email)
+                  .HasConversion(
+                      v => (v ?? string.Empty).Trim().ToLowerInvariant(),
+                      v => v
+                  );
+
+            // Per-tenant unique email
             entity.HasIndex(u => new { u.OrganisationId, u.Email })
                   .IsUnique();
         });
