@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using ProjectSaas.Api.Application.Exceptions;
 
 namespace ProjectSaas.Api.Common.Middleware;
 
@@ -16,13 +17,20 @@ public sealed class ExceptionHandlingMiddleware : IMiddleware
         {
             await WriteProblem(context, StatusCodes.Status409Conflict, "Conflict", "Unique constraint violation.");
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
-            await WriteProblem(context, StatusCodes.Status400BadRequest, "Validation failed", ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            await WriteProblem(context, StatusCodes.Status409Conflict, "Conflict", ex.Message);
+            var (status, title, detail) = ex switch
+            {
+                InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message),
+                ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden", ex.Message),
+
+                ArgumentException => (StatusCodes.Status400BadRequest, "Validation failed", ex.Message),
+                InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict", ex.Message),
+
+                _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.")
+            };
+
+            await WriteProblem(context, status, title, detail);
         }
     }
 

@@ -6,6 +6,10 @@ using ProjectSaas.Api.Application.Interfaces;
 using ProjectSaas.Api.Infrastructure.Auth;
 using ProjectSaas.Api.Application.Services;
 using ProjectSaas.Api.Common.Middleware;
+using ProjectSaas.Api.Application.Abstractions.Security;
+using ProjectSaas.Api.Application.Abstractions.Auth;
+using ProjectSaas.Api.Application.Abstractions.Tenancy;
+using ProjectSaas.Api.Infrastructure.Tenancy;
 
 namespace ProjectSaas.Api.Common.Extensions;
 
@@ -23,6 +27,12 @@ public static class ServiceCollectionExtensions
             options.UseNpgsql(connectionString);
         });
 
+        services.AddScoped<TenantContextAccessor>();
+        services.AddScoped<ProjectSaas.Api.Application.Abstractions.Tenancy.ITenantContext>(
+            sp => sp.GetRequiredService<TenantContextAccessor>());
+
+        services.AddScoped<TenantContextMiddleware>();
+
         return services;
     }
 
@@ -31,6 +41,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddTransient<ExceptionHandlingMiddleware>();
+        services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

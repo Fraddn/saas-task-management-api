@@ -17,6 +17,7 @@ public class CompaniesController : ControllerBase
     }
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<ActionResult<RegisterCompanyResult>> CreateCompany(
     [FromBody] RegisterCompanyRequest request,
     CancellationToken ct)
