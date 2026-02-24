@@ -42,7 +42,11 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+});
 
 var app = builder.Build();
 
@@ -52,9 +56,8 @@ app.UseSwaggerUI();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
-app.UseAuthorization();
-
 app.UseMiddleware<TenantContextMiddleware>();
+app.UseAuthorization();
 
 app.MapControllers();
 

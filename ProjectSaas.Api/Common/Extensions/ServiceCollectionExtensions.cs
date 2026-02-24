@@ -10,6 +10,7 @@ using ProjectSaas.Api.Application.Abstractions.Security;
 using ProjectSaas.Api.Application.Abstractions.Auth;
 using ProjectSaas.Api.Application.Abstractions.Tenancy;
 using ProjectSaas.Api.Infrastructure.Tenancy;
+using ProjectSaas.Api.Application.Tickets;
 
 namespace ProjectSaas.Api.Common.Extensions;
 
@@ -43,6 +44,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ExceptionHandlingMiddleware>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITicketService, TicketService>();
 
         return services;
     }

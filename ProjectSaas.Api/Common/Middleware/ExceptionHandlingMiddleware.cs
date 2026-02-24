@@ -24,6 +24,10 @@ public sealed class ExceptionHandlingMiddleware : IMiddleware
                 InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message),
                 ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden", ex.Message),
 
+                // Add these two:
+                KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found", ex.Message),
+                ConcurrencyConflictException => (StatusCodes.Status409Conflict, "Concurrency conflict", ex.Message),
+
                 ArgumentException => (StatusCodes.Status400BadRequest, "Validation failed", ex.Message),
                 InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict", ex.Message),
 

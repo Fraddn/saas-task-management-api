@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProjectSaas.Api.Application.Interfaces;
 using ProjectSaas.Api.Application.Models;
 using ProjectSaas.Api.Contracts.Requests.Companies;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ProjectSaas.Api.Controllers;
 
