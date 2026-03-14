@@ -6,4 +6,5 @@ public interface ITenantContext
     Guid UserId { get; }
     string Role { get; }
     bool IsAuthenticated { get; }
+    bool IsPlatformAdmin { get; }
 }

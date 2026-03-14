@@ -10,6 +10,9 @@ public sealed class User
     public string PasswordHash { get; set; } = string.Empty;
 
     public string Role { get; set; } = "Employee";
+    public string FirstName { get; set; } = default!;
+    public string LastName { get; set; } = default!;
+    public bool IsPlatformAdmin { get; set; }
     public bool IsDisabled { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;

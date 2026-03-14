@@ -22,9 +22,10 @@ public sealed class ExceptionHandlingMiddleware : IMiddleware
             var (status, title, detail) = ex switch
             {
                 InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message),
+                InvalidRefreshTokenException => (StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message),
                 ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden", ex.Message),
 
-                // Add these two:
+                NotFoundException => (StatusCodes.Status404NotFound, "Not Found", ex.Message),
                 KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found", ex.Message),
                 ConcurrencyConflictException => (StatusCodes.Status409Conflict, "Concurrency conflict", ex.Message),
 

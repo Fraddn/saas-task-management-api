@@ -8,6 +8,8 @@ public interface ITokenService
 public sealed record TokenUser(
     Guid UserId,
     Guid OrganisationId,
+    string Email,
     string Role,
-    string Email
+    bool IsPlatformAdmin
 );
+

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ProjectSaas.Api.Infrastructure.Data;
@@ -11,9 +12,11 @@ using ProjectSaas.Api.Infrastructure.Data;
 namespace ProjectSaas.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260314145651_AddRefreshTokenFamily")]
+    partial class AddRefreshTokenFamily
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,54 +106,6 @@ namespace ProjectSaas.Api.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
-            modelBuilder.Entity("ProjectSaas.Api.Domain.Entities.SecurityEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("event_type");
-
-                    b.Property<Guid?>("FamilyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("family_id");
-
-                    b.Property<string>("MetadataJson")
-                        .HasColumnType("text")
-                        .HasColumnName("metadata_json");
-
-                    b.Property<DateTimeOffset>("OccurredAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at_utc");
-
-                    b.Property<Guid?>("OrganisationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organisation_id");
-
-                    b.Property<string>("RequestIpAddress")
-                        .HasColumnType("text")
-                        .HasColumnName("request_ip_address");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OccurredAtUtc");
-
-                    b.HasIndex("EventType", "OccurredAtUtc");
-
-                    b.HasIndex("OrganisationId", "OccurredAtUtc");
-
-                    b.HasIndex("UserId", "OccurredAtUtc");
-
-                    b.ToTable("security_events", (string)null);
-                });
-
             modelBuilder.Entity("ProjectSaas.Api.Domain.Entities.Ticket", b =>
                 {
                     b.Property<Guid>("Id")
@@ -224,21 +179,8 @@ namespace ProjectSaas.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsDisabled")
                         .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPlatformAdmin")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uuid");

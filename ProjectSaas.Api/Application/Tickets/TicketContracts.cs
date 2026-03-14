@@ -26,6 +26,10 @@ public sealed record AssignTicketRequest(
     Guid AssigneeUserId,
     int RowVersion);
 
+public sealed record CompleteTicketRequest(
+    int RowVersion,
+    string? ResolutionNote = null);
+
 public sealed record TicketDto(
     Guid Id,
     string Title,

@@ -8,12 +8,14 @@ public sealed class TenantContextAccessor : ITenantContext
     public Guid UserId { get; private set; }
     public string Role { get; private set; } = string.Empty;
     public bool IsAuthenticated { get; private set; }
+    public bool IsPlatformAdmin { get; private set; }
 
-    public void Set(Guid organisationId, Guid userId, string role)
+    public void Set(Guid organisationId, Guid userId, string role, bool isPlatformAdmin)
     {
         OrganisationId = organisationId;
         UserId = userId;
         Role = role;
+        IsPlatformAdmin = isPlatformAdmin;
         IsAuthenticated = true;
     }
 }

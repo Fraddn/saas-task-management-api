@@ -27,6 +27,7 @@ public sealed class JwtTokenService : ITokenService
             new("orgId", user.OrganisationId.ToString()),
             new(ClaimTypes.Role, user.Role),
             new(JwtRegisteredClaimNames.Email, user.Email),
+            new("is_platform_admin", user.IsPlatformAdmin ? "true" : "false"),
         };
 
         var token = new JwtSecurityToken(
@@ -41,4 +42,3 @@ public sealed class JwtTokenService : ITokenService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
-

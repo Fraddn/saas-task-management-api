@@ -11,6 +11,8 @@ using ProjectSaas.Api.Application.Abstractions.Auth;
 using ProjectSaas.Api.Application.Abstractions.Tenancy;
 using ProjectSaas.Api.Infrastructure.Tenancy;
 using ProjectSaas.Api.Application.Tickets;
+using ProjectSaas.Api.Application.Services.Users;
+using ProjectSaas.Api.Application.Abstractions.Users;
 
 namespace ProjectSaas.Api.Common.Extensions;
 
@@ -33,6 +35,8 @@ public static class ServiceCollectionExtensions
             sp => sp.GetRequiredService<TenantContextAccessor>());
 
         services.AddScoped<TenantContextMiddleware>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
 
         return services;
     }
@@ -45,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITicketService, TicketService>();
+        services.AddScoped<IUserService, UserService>();
 
         return services;
     }
