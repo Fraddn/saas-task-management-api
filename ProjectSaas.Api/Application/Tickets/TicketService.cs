@@ -8,6 +8,7 @@ using ProjectSaas.Api.Application.Abstractions.Tenancy;
 using ProjectSaas.Api.Application.Exceptions;
 using ProjectSaas.Api.Domain.Entities;
 using ProjectSaas.Api.Infrastructure.Data;
+using System.Text.Json;
 
 namespace ProjectSaas.Api.Application.Tickets;
 
@@ -142,7 +143,39 @@ public sealed class TicketService : ITicketService
             RowVersion = 1
         };
 
+        var outboxMessage = CreateOutboxMessage(
+            "TicketCreated",
+            new
+            {
+                ticketId = ticket.Id,
+                organisationId = ticket.OrganisationId,
+                title = ticket.Title,
+                priority = ticket.Priority,
+                createdByUserId = ticket.CreatedByUserId,
+                occurredAtUtc = now
+            },
+            now);
+
         _db.Tickets.Add(ticket);
+        _db.OutboxMessages.Add(outboxMessage);
+
+        if (string.Equals(ticket.Priority, "High", StringComparison.OrdinalIgnoreCase))
+        {
+            var highPriorityOutboxMessage = CreateOutboxMessage(
+                "TicketHighPriority",
+                new
+                {
+                    ticketId = ticket.Id,
+                    priority = ticket.Priority,
+                    createdByUserId = ticket.CreatedByUserId,
+                    organisationId = ticket.OrganisationId,
+                    occurredAtUtc = now
+                },
+                now);
+
+            _db.OutboxMessages.Add(highPriorityOutboxMessage);
+        }
+
         await _db.SaveChangesAsync(ct);
 
         return new TicketDto(
@@ -241,9 +274,25 @@ public sealed class TicketService : ITicketService
         if (ticket.RowVersion != request.RowVersion)
             throw new ConcurrencyConflictException("Concurrency conflict. Please refresh and retry.");
 
+        var now = DateTimeOffset.UtcNow;
+
         ticket.AssignedToUserId = request.AssigneeUserId;
-        ticket.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        ticket.UpdatedAtUtc = now;
         ticket.RowVersion += 1;
+
+        var outboxMessage = CreateOutboxMessage(
+            "TicketAssigned",
+            new
+            {
+                ticketId = ticket.Id,
+                assignedToUserId = ticket.AssignedToUserId,
+                assignedByUserId = _tenant.UserId,
+                organisationId = ticket.OrganisationId,
+                occurredAtUtc = now
+            },
+            now);
+
+        _db.OutboxMessages.Add(outboxMessage);
 
         await _db.SaveChangesAsync(ct);
 
@@ -287,9 +336,24 @@ public sealed class TicketService : ITicketService
         if (string.Equals(ticket.Status, "Completed", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Ticket is already completed.");
 
+        var now = DateTimeOffset.UtcNow;
+
         ticket.Status = "Completed";
-        ticket.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        ticket.UpdatedAtUtc = now;
         ticket.RowVersion += 1;
+
+        var outboxMessage = CreateOutboxMessage(
+            "TicketCompleted",
+            new
+            {
+                ticketId = ticket.Id,
+                completedByUserId = _tenant.UserId,
+                organisationId = ticket.OrganisationId,
+                occurredAtUtc = now
+            },
+            now);
+
+        _db.OutboxMessages.Add(outboxMessage);
 
         await _db.SaveChangesAsync(ct);
 
@@ -328,5 +392,20 @@ public sealed class TicketService : ITicketService
         ticket.RowVersion += 1;
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    private OutboxMessage CreateOutboxMessage(string eventType, object payload, DateTimeOffset now)
+    {
+        return new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            OrganisationId = _tenant.OrganisationId,
+            EventType = eventType,
+            PayloadJson = JsonSerializer.Serialize(payload),
+            OccurredAtUtc = now.UtcDateTime,
+            ProcessedAtUtc = null,
+            RetryCount = 0,
+            LastError = null
+        };
     }
 }

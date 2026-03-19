@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="ProjectSaas.Api/ProjectSaas.Api.csproj" />
+  <Project Path="ProjectSaas.Worker/ProjectSaas.Worker.csproj" />
 </Solution>

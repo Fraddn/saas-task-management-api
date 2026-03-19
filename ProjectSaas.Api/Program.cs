@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using ProjectSaas.Api.Application.Security;
 using System.Text.Json;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using ProjectSaas.Api.Application.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +20,16 @@ var allowedOrigins = builder.Configuration
     .Get<string[]>() ?? Array.Empty<string>();
 
 builder.Services.AddControllers();
-builder.Services.AddHealthChecks();
+
+var postgresConnectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("Connection string 'Default' was not found.");
+
+builder.Services
+    .AddHealthChecks()
+    .AddNpgSql(
+        connectionString: postgresConnectionString,
+        name: "postgres",
+        tags: new[] { "ready" });
 
 builder.Services.Configure<JwtOptions>(
     builder.Configuration.GetSection(JwtOptions.SectionName));
@@ -41,6 +52,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
+
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -182,7 +195,16 @@ app.UseAuthentication();
 app.UseMiddleware<TenantContextMiddleware>();
 app.UseAuthorization();
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
 app.MapControllers();
 
 app.Run();

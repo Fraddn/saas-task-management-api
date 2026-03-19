@@ -24,6 +24,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SecurityEvent> SecurityEvents => Set<SecurityEvent>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -128,6 +130,38 @@ public sealed class AppDbContext : DbContext
             b.HasIndex(x => new { x.EventType, x.OccurredAtUtc });
             b.HasIndex(x => new { x.UserId, x.OccurredAtUtc });
             b.HasIndex(x => new { x.OrganisationId, x.OccurredAtUtc });
+        });
+
+        modelBuilder.Entity<OutboxMessage>(b =>
+        {
+            b.ToTable("OutboxMessages");
+
+            b.HasKey(x => x.Id);
+
+            b.Property(x => x.OrganisationId)
+                .IsRequired();
+
+            b.Property(x => x.EventType)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            b.Property(x => x.PayloadJson)
+                .IsRequired();
+
+            b.Property(x => x.OccurredAtUtc)
+                .IsRequired();
+
+            b.Property(x => x.ProcessedAtUtc);
+
+            b.Property(x => x.RetryCount)
+                .IsRequired()
+                .HasDefaultValue(0);
+
+            b.Property(x => x.LastError)
+                .HasMaxLength(4000);
+
+            b.HasIndex(x => new { x.ProcessedAtUtc, x.OccurredAtUtc });
+            b.HasIndex(x => x.OrganisationId);
         });
     }
 }

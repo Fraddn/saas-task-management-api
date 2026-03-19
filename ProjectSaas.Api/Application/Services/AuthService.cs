@@ -6,6 +6,8 @@ using ProjectSaas.Api.Contracts.Requests.Auth;
 using ProjectSaas.Api.Infrastructure.Data;
 using ProjectSaas.Api.Application.Interfaces;
 using ProjectSaas.Api.Application.Abstractions.Security;
+using ProjectSaas.Api.Contracts.Responses.Users;
+using ProjectSaas.Api.Application.Abstractions.Tenancy;
 
 namespace ProjectSaas.Api.Application.Services;
 
@@ -15,17 +17,20 @@ public sealed class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenService _refreshTokens;
+    private readonly ITenantContext _tenantContext;
 
     public AuthService(
         AppDbContext db,
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
-        IRefreshTokenService refreshTokens)
+        IRefreshTokenService refreshTokens,
+        ITenantContext tenantContext)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _refreshTokens = refreshTokens;
+        _tenantContext = tenantContext;
     }
 
     public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct)
@@ -141,6 +146,36 @@ public sealed class AuthService : IAuthService
             user.Role,
             user.OrganisationId
         );
+    }
+
+    public async Task<UserDto> GetCurrentUserAsync(Guid userId, CancellationToken ct)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == userId, ct);
+
+        if (user is null)
+        {
+            throw new KeyNotFoundException("User not found.");
+        }
+
+        if (user.OrganisationId != _tenantContext.OrganisationId)
+        {
+            throw new KeyNotFoundException("User not found.");
+        }
+
+        return new UserDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role,
+            IsDisabled = user.IsDisabled,
+            OrganisationId = user.OrganisationId,
+            CreatedAtUtc = user.CreatedAtUtc,
+            UpdatedAtUtc = user.UpdatedAtUtc
+        };
     }
 
     public async Task LogoutAsync(string refreshToken, CancellationToken ct)

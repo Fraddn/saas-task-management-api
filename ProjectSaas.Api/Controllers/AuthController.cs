@@ -5,6 +5,10 @@ using ProjectSaas.Api.Contracts.Requests.Auth;
 using ProjectSaas.Api.Contracts.Responses.Auth;
 using ProjectSaas.Api.Infrastructure.Auth;
 using Microsoft.AspNetCore.RateLimiting;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using ProjectSaas.Api.Contracts.Responses.Users;
 
 namespace ProjectSaas.Api.Controllers;
 
@@ -143,5 +147,26 @@ public sealed class AuthController : ControllerBase
             "none" => SameSiteMode.None,
             _ => SameSiteMode.Lax
         };
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserDto>> Me(CancellationToken ct)
+    {
+        var subClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+            User.FindFirstValue(JwtRegisteredClaimNames.Sub) ??
+            User.FindFirstValue("sub");
+
+        if (!Guid.TryParse(subClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _authService.GetCurrentUserAsync(userId, ct);
+        return Ok(user);
     }
 }
