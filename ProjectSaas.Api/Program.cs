@@ -12,6 +12,9 @@ using ProjectSaas.Api.Application.Security;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using ProjectSaas.Api.Application.Notifications;
+using ProjectSaas.Api.Configuration;
+using ProjectSaas.Api.Hubs;
+using ProjectSaas.Api.Infrastructure.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +37,9 @@ builder.Services
 builder.Services.Configure<JwtOptions>(
     builder.Configuration.GetSection(JwtOptions.SectionName));
 
+builder.Services.Configure<InternalCallbackOptions>(
+    builder.Configuration.GetSection(InternalCallbackOptions.SectionName));
+
 builder.Services
     .AddOptions<RefreshCookieOptions>()
     .Bind(builder.Configuration.GetSection(RefreshCookieOptions.SectionName))
@@ -46,14 +52,16 @@ builder.Services
     .ValidateOnStart();
 
 builder.Services.AddEndpointsApiExplorer();
-
-// Swagger configuration with JWT Bearer support for testing secured endpoints
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationLiveQueryService, NotificationLiveQueryService>();
+builder.Services.AddSingleton<INotificationRealtimeNotifier, SignalRNotificationRealtimeNotifier>();
+
+builder.Services.AddSignalR();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -154,6 +162,23 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken) &&
+                    path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -206,5 +231,6 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 app.MapControllers();
+app.MapHub<NotificationsHub>("/hubs/notifications");
 
 app.Run();

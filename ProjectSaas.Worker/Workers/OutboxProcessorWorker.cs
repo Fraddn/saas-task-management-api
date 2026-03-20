@@ -84,6 +84,10 @@ public sealed class OutboxProcessorWorker : BackgroundService
 
             var dbContext = scope.ServiceProvider.GetRequiredService<WorkerDbContext>();
             var dispatcher = scope.ServiceProvider.GetRequiredService<IOutboxEventDispatcher>();
+            var realtimeDispatcher = scope.ServiceProvider.GetRequiredService<IRealtimeNotificationDispatcher>();
+            var notificationDispatchBuffer = scope.ServiceProvider.GetRequiredService<INotificationDispatchBuffer>();
+
+            notificationDispatchBuffer.Clear();
 
             await using var transaction = await dbContext.Database.BeginTransactionAsync(stoppingToken);
 
@@ -115,8 +119,25 @@ public sealed class OutboxProcessorWorker : BackgroundService
             message.ProcessedAtUtc = DateTime.UtcNow;
             message.LastError = null;
 
+            var notificationIdsToDispatch = notificationDispatchBuffer.GetAll().ToList();
+
             await dbContext.SaveChangesAsync(stoppingToken);
             await transaction.CommitAsync(stoppingToken);
+
+            foreach (var notificationId in notificationIdsToDispatch)
+            {
+              try
+              {
+                await realtimeDispatcher.DispatchAsync(notificationId, stoppingToken);
+              }
+              catch (Exception liveEx)
+              {
+                _logger.LogWarning(
+                    liveEx,
+                    "Notification {NotificationId} was persisted but live delivery failed.",
+                    notificationId);
+              }
+            }
 
             successCount++;
 
