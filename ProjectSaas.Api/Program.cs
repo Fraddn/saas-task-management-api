@@ -22,7 +22,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? Array.Empty<string>();
+    .Get<string[]>();
+
+if (allowedOrigins is null || allowedOrigins.Length == 0)
+{
+    var csvOrigins = builder.Configuration["Cors:AllowedOrigins"];
+
+    if (!string.IsNullOrWhiteSpace(csvOrigins))
+    {
+        allowedOrigins = csvOrigins
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+}
+
+allowedOrigins ??= Array.Empty<string>();
+
+if (builder.Environment.IsProduction() && allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException(
+        "CORS is not configured. Set Cors:AllowedOrigins (e.g. Cors__AllowedOrigins__0=https://your-frontend.vercel.app)."
+    );
+}
 
 builder.Services.AddControllers();
 
