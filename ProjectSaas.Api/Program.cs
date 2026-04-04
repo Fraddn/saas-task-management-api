@@ -20,27 +20,53 @@ using ProjectSaas.Api.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>();
+var csvOrigins = builder.Configuration["Cors:AllowedOrigins"];
 
-if (allowedOrigins is null || allowedOrigins.Length == 0)
+string[]? allowedOrigins;
+
+if (!string.IsNullOrWhiteSpace(csvOrigins))
 {
-    var csvOrigins = builder.Configuration["Cors:AllowedOrigins"];
-
-    if (!string.IsNullOrWhiteSpace(csvOrigins))
-    {
-        allowedOrigins = csvOrigins
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    }
+    // Prefer a single CSV env var value in production platforms.
+    allowedOrigins = csvOrigins
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}
+else
+{
+    allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>();
 }
 
 allowedOrigins ??= Array.Empty<string>();
+
+allowedOrigins = allowedOrigins
+    .Select(origin => origin.Trim())
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.EndsWith('/') ? origin.TrimEnd('/') : origin)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
 
 if (builder.Environment.IsProduction() && allowedOrigins.Length == 0)
 {
     throw new InvalidOperationException(
         "CORS is not configured. Set Cors:AllowedOrigins (e.g. Cors__AllowedOrigins__0=https://your-frontend.vercel.app)."
+    );
+}
+
+if (builder.Environment.IsProduction() &&
+    allowedOrigins.All(origin =>
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase);
+    }))
+{
+    throw new InvalidOperationException(
+        "CORS in Production is configured only for localhost. Add your frontend domain to Cors:AllowedOrigins."
     );
 }
 
