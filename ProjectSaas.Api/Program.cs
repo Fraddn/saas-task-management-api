@@ -15,6 +15,8 @@ using ProjectSaas.Api.Application.Notifications;
 using ProjectSaas.Api.Configuration;
 using ProjectSaas.Api.Hubs;
 using ProjectSaas.Api.Infrastructure.Realtime;
+using Microsoft.EntityFrameworkCore;
+using ProjectSaas.Api.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,9 +52,6 @@ builder.Services
     .Validate(options => options.SameSite is "Lax" or "Strict" or "None",
         "Refresh cookie SameSite must be Lax, Strict, or None.")
     .ValidateOnStart();
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
@@ -109,8 +108,8 @@ builder.Services.AddRateLimiter(options =>
 
         await httpContext.Response.WriteAsync(
             """
-        {"title":"Too Many Requests","status":429,"detail":"Rate limit exceeded. Please try again later."}
-        """,
+            {"title":"Too Many Requests","status":429,"detail":"Rate limit exceeded. Please try again later."}
+            """,
             token);
     };
 
@@ -191,6 +190,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCors", policy =>
     {
+        if (allowedOrigins.Length == 0)
+        {
+            return;
+        }
+
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
@@ -203,8 +207,11 @@ builder.Services.AddScoped<ISecurityEventService, SecurityEventService>();
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.UseHttpsRedirection();
 
